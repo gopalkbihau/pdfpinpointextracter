@@ -14,10 +14,14 @@ def pdf_to_images(pdf_bytes):
     images = []
     try:
         pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
+        # --- IMPORTANT CHANGE FOR DEPLOYMENT ---
+        # Using dpi=150 instead of 300 to reduce memory usage on cloud platforms.
+        # This is the key to preventing memory-related crashes on Streamlit Cloud.
+        dpi_setting = 150
+        
         for page_num in range(len(pdf_document)):
             page = pdf_document.load_page(page_num)
-            # Increase resolution for better OCR
-            pix = page.get_pixmap(dpi=300)
+            pix = page.get_pixmap(dpi=dpi_setting)
             img_bytes = pix.tobytes("png")
             image = Image.open(io.BytesIO(img_bytes))
             images.append(image)
@@ -98,12 +102,12 @@ with st.sidebar:
         st.rerun()
 
     if uploaded_file and not st.session_state.pdf_images:
-        with st.spinner("Processing PDF..."):
+        with st.spinner("Processing PDF... (This may take a moment)"):
             st.session_state.pdf_images = pdf_to_images(uploaded_file.getvalue())
         if st.session_state.pdf_images:
             st.success(f"PDF processed: {len(st.session_state.pdf_images)} pages.")
         else:
-            st.error("Could not process the PDF.")
+            st.error("Could not process the PDF. It might be corrupted or too large.")
 
     if st.session_state.pdf_images:
         st.header("🛠️ Extraction Settings")
